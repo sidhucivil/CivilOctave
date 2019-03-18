@@ -1,0 +1,102 @@
+
+%% span length  in mm
+#name: Span
+#type: scalar
+6000
+
+%% Width of support in mm
+#name: Bs
+#type: scalar
+300
+
+#name: Fck
+#type: scalar
+25
+
+#name: Fy
+#type: scalar
+415
+
+
+%% Es in N/mm2
+%% Modulus of Elasticity
+# name: Es
+# type: scalar
+200000
+
+%% effective depth of beam
+%% To calculate d using program, give its value equal to 0
+#name: d
+#type: scalar
+0
+
+%% Total depth of beam
+%% To calculate D using program, give its value equal to 0
+#name: D
+#type: scalar
+450
+
+%% Total width of beam
+%% To calculate b using program, give its value equal to 0
+#name: B
+#type: scalar
+250
+
+%% Depth by Width ratio(D/B)
+%% should be between 1.5 and 2
+#name: R
+#type: scalar
+1.5
+
+%% clear cover
+%% To calculate Cc using program, give its value equal to 0
+#name: Cc
+#type: scalar
+40
+
+%% Effective depth of compression reinforcement
+%% To calculate de_c using program, give its value equal to 0
+#name: de_c
+#type: scalar
+40
+
+%% Dia of bars in Tension
+#name: dia_1
+#type: scalar
+20
+
+%% Dia of bars in Compression
+%% To calculate de_c using program, give its value equal to 0
+#name: dia_2
+#type: scalar
+20
+
+%% Dia of Shear reinforcement
+%% To calculate dia using program, give its value equal to 0
+#name: dia_3
+#type: scalar
+0
+
+%% Dia of Anchorage reinforcement
+%% To calculate dia using program, give its value equal to 0
+#name: dia_4
+#type: scalar
+0
+
+%% leggs of vertical stirrups (2, 4 or 6)
+# name: N_st
+# type: scalar
+2
+
+
+%% 1 for plain bars
+%% 2 for deformed bars
+# name: Tbd_switch
+# type: scalar
+2
+
+%% Size of aggregates
+#name: Sa
+#type: scalar
+20
+
