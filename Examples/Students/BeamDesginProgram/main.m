@@ -448,6 +448,7 @@ if Pt_Provided<0.15
    endif
 endif
 
+
 if Pt_Provided>=3.00
     if Fck>=40
        Tc=1.01;
@@ -481,7 +482,7 @@ F(i,:)=[Tc];
 G(i,:)=[Pt_Provided];
 H(i,:)=[Disp_1];
 I(i,:)=[Sv];
-endfor
+ endfor
 
 Nominal_Shear_Stress=[reshape(E,[],1)];
 Design_Shear_Stress=[reshape(F,[],1)];
@@ -496,10 +497,8 @@ disp(num2str(R2))
 fprintf('\n')
 
 
-%% check for development length
 
-%%%%%%%
-
+%%%% Development length check
 
 Tbd=interp1(Tbd_1(:,1),Tbd_1(:,2),Fck)
 switch (Tbd_switch)
@@ -508,49 +507,22 @@ switch (Tbd_switch)
   case 2
         Ld=ceil((0.87*Fy*dia_1)/(4* 1.6*Tbd));
   endswitch
-Ld
+Ld;
+disp(['Development length at section having maximum moment= ' num2str(Ld)])
 
-if Fy<415
-   X1=3*dia_1;
- elseif Fy>=415
-   X1=5*dia_1;
- endif
+for i=1:r  
+ section=i;
+ AST_Provided=AreaP_Tension_2'(i);
+ M1=(0.87*Fy*AST_Provided)*(de_beam-((Fy*AST_Provided)/(Fck*B_beam)));
+ V1=Vu(i);
+ Ld_1=(M1/(V1*1000));
+ Z(i,:)=[Ld_1];
+ ZZ(i,:)=[section];
+endfor
+Ld__1=[reshape(Z,[],1)];
+Sec=[reshape(ZZ,[],1)];
 
- if Hook_Allowance==180
-   ha=16*dia_1+4*dia_1;
- elseif Hook_Allowance==90
-   ha=8*dia_1+4*dia_1;
- else 
-  disp('change the degree of hook allowance')
- endif
-Lo=(Bs/2)-X1-(C_cc)+ha
+disp('section development_length')
+R4=[Sec,Ld__1];
+disp(num2str(R4))
 
-disp(['As per code Bars must extend beyond the face of support by a distance not less than ' num2str((Ld/3))])
-Lif=Bs-C_cc;
-disp(['Embedment Length available from inner face of support ' num2str((Lif))])
-
-if Lif<=(Ld/3)
-  disp(['There is a need to increase the embedded length'])
- Lifp=(Bs/2)+Lo;
- disp(['Embedment Length provided from inner face of support ' num2str((Lifp))])
-else
- disp(['Embedment Length provided from inner face of support ' num2str((Lif))])
-endif
-
-
-fprintf('\n')
-
-AST_Provided=max(AreaP_Tension)
-
-  %%%  Mu1= TENSION FPORCE * LEVER ARM
-
- M1=(0.87*Fy*AST_Provided)*(de_beam-((Fy*AST_Provided)/(Fck*B_beam)))
-  V1=max(Vu)
-  Ld_1=(1.3*M1/(V1*1000))+Lo
-  
-if Ld_1>=Ld
- disp('Development length requirments are satisfied');
- else
- disp('Development length requirments are not satisfied');
- %%% needs solution
-endif
