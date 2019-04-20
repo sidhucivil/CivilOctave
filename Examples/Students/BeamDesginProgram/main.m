@@ -9,6 +9,7 @@ StaadTable= [csvread('Staad2.csv',1,0)];
 %% K=(Xu_max/d)
 K=(0.0035*Es)/(0.0055*Es + 0.87*Fy)
 Span
+
 %% effective depth of beam drop plus slab thickness
 if Span<=10000
  if d==0
@@ -43,9 +44,17 @@ else
 endif
 C_cc
 
+%% Shear reinforcement
+if dia_3==0
+  dia_st=dia_3Data;
+else
+  dia_st=dia_3;
+endif
+dia_st
+
 %% Total Depth of beam
 if D==0
-  D_t=(d_e+C_cc+(dia_1/2));
+  D_t=(d_e+C_cc+(dia_1/2)+dia_st);
 else 
   D_t=(D);
   endif
@@ -66,7 +75,7 @@ endif
 if B==0
 [m,n]=min(abs(B_t-Shut(:,1)));
 B_beam= (Shut(n));
-elseif
+else
 B_beam=B;
 endif
 B_beam
@@ -74,18 +83,12 @@ B_beam
 if D==0
 [o,p]=min(abs(D_t-Shut(:,1)));
 D_beam= (Shut(p));
-elseif
+else
 D_beam=D;
 endif
 D_beam
 
-%% Shear reinforcement
-if dia_3==0
-  dia_st=dia_3Data;
-else
-  dia_st=dia_3;
-endif
-dia_st
+
 
 %% Effective Depth of the beam
 de_beam=(D_beam-C_cc-dia_st-(dia_1/2))
@@ -138,7 +141,7 @@ if Fy<415
 elseif Fy>=415 && Fy<500
     if Esc>=0.00380
       Fsc=360.9;
-    elseif
+    else
       Fsc=interp1(Fsc_415(:,1),Fsc_415(:,2),Esc);
     endif
 elseif Fy>=500
@@ -200,12 +203,11 @@ if As_TC>=Ast_min && As_TC<=Ast_max
    AstR_1=Ast_max;
   endif
 
-A(i,:)=[Mu_1 Ast_1 Mu_2 Ast_2 Asc;];
+A(i,:)=[Mu_1 Ast_1 Mu_2 Ast_2 Asc];
 B(i,:)=[AstR_1];
 J(i,:)=[AstR_T];
 Nst(i,:)=[ceil((Ast_1+Ast_2)/(0.25*pi*dia_1*dia_1))];
 Nsc(i,:)=[ceil((Asc/(0.25*pi*dia_2*dia_2)))];
-
 AsTP_1=(Nst(i,:)*0.25*pi*dia_1*dia_1);
 AsCP_2=(Nsc(i,:)*0.25*pi*dia_2*dia_2);
 C(i,:)=[AsTP_1+AsCP_2];
@@ -224,6 +226,28 @@ AreaP_Tension=[reshape(C_1,[],1)];
 AreaP_Compression=[reshape(C_2,[],1)];
 AreaP_Anchorage=[reshape(L,[],1)];
 
+
+
+%%%
+Max_Steel_Provided=max(TotalSteel_Provided)
+MSP_11=0.75*Max_Steel_Provided
+MSP_12=0.5*Max_Steel_Provided
+for i=1:r
+if MSP_11<=AreaP_Tension(i) && AreaP_Tension(i)<=Max_Steel_Provided
+  AreaP_Tension_1(i)=Max_Steel_Provided;
+  Nst_3(i,:)=[ceil((AreaP_Tension_1(i))/(0.25*pi*dia_1*dia_1))];
+  AreaP_Tension_2(i)=(0.25*pi*dia_1*dia_1)*Nst_3(i);
+elseif MSP_12<=AreaP_Tension(i) && AreaP_Tension(i)<MSP_11
+  AreaP_Tension_1(i)=0.80*Max_Steel_Provided;
+  Nst_3(i,:)=[ceil((AreaP_Tension_1(i))/(0.25*pi*dia_1*dia_1))];
+  AreaP_Tension_2(i)=(0.25*pi*dia_1*dia_1)*Nst_3(i);
+else
+  AreaP_Tension_1(i)=0.5*Max_Steel_Provided;
+  Nst_3(i,:)=[ceil((AreaP_Tension_1(i))/(0.25*pi*dia_1*dia_1))];
+  AreaP_Tension_2(i)=(0.25*pi*dia_1*dia_1)*Nst_3(i);
+endif
+endfor
+
 R=[StaadTable];
 S=[Steel];
 disp('Member   Distance        Fy MAX           FY MIN          MZ MAX        MZ MIN')
@@ -235,15 +259,27 @@ fprintf('\n')
 dia_1
 dia_2
 
-
+fprintf('\n')
+R1=[TotalSteel_Required,Nst_3,N_Compression,AreaP_Tension_2'];
+disp('Steel_Required         NT             NC     Actual_Steel_Provided ')
+disp(num2str(R1)) 
+fprintf('\n')
 
 %% spacing of bars in mm
 for i=1:r
   %% Tension bars
-if N_Tension(i)<=1
+  
+  
+  
+  
+  %%%%%% jkvheilfh
+  
+  
+  
+if Nst_3(i)<=1
     SpT_provided_1=0;
   else
-    SpT_provided_1=((B_beam)-(2*Ce)-(((N_Tension(i)-1)*dia_1)))/((N_Tension(i)-1));
+    SpT_provided_1=((B_beam)-(2*Ce)-(((Nst_3(i)-1)*dia_1)))/((Nst_3(i)-1));
 endif
 
 Sp_min=max([dia_1 Sa+5]);
@@ -251,7 +287,7 @@ if Sp_min<=SpT_provided_1
    SpT_Provided_1=SpT_provided_1;
    SpT_Provided_2=0;
    Layers_T=1;
-   Nst_1=N_Tension(i);
+   Nst_1=Nst_3(i);
    Nst_2=0;
 elseif SpT_provided_1==0
    SpT_Provided_1=0;
@@ -261,15 +297,15 @@ elseif SpT_provided_1==0
    Nst_2=0;  
 else
   Layers_T=2;
-  Mod_T=mod(N_Tension(i),2);
+  Mod_T=mod(Nst_3(i),2);
     if Mod_T==0
-      Nst_1=(N_Tension(i)/2);
-      Nst_2=(N_Tension(i)/2);
+      Nst_1=(Nst_3(i)/2);
+      Nst_2=(Nst_3(i)/2);
       SpT_Provided_1=((B_beam)-(2*Ce)-((((Nst_1)-1)*dia_1)))/((Nst_1)-1);
       SpT_Provided_2=((B_beam)-(2*Ce)-((((Nst_2)-1)*dia_1)))/((Nst_2)-1);
     else
-      Nst_1=ceil((N_Tension(i)/2));
-      Nst_2=N_Tension(i)-ceil((N_Tension(i)/2));
+      Nst_1=ceil((Nst_3(i)/2));
+      Nst_2=Nst_3(i)-ceil((Nst_3(i)/2));
       SpT_Provided_1=((B_beam)-(2*Ce)-((((Nst_1)-1)*dia_1)))/((Nst_1)-1);
       SpT_Provided_2=((B_beam)-(2*Ce)-((((Nst_2)-1)*dia_1)))/((Nst_2)-1);
     endif 
@@ -338,15 +374,13 @@ Bars_C_2=[reshape(N2C,[],1)];
 Sp_min
 
 
-fprintf('\n')
-R1=[TotalSteel_Required,N_Tension,N_Compression,TotalSteel_Provided];
-disp('Steel_Required         NT             NC     Steel_Provided ')
-disp(num2str(R1)) 
-fprintf('\n')
+
 R6=[Bars_T_1,Spacing_Tension_1,Bars_T_2,Spacing_Tension_2,Layers_Tension,Bars_C_1,Spacing_Compression_1,Bars_C_2,Spacing_Compression_2,Layers_Compression];
 disp('N_T1  SP_T1  N_T2  SP_T2  Layers_T    N_CC1  SP_C1  N_C2  SP_C2  Layers_C ')
 disp(num2str(R6)) 
 fprintf('\n')
+
+
 
 
 
@@ -377,6 +411,10 @@ else
 disp("Provide 2, 4 and 6 legged only")
 endif
 N_st 
+
+
+          ### Using X mm Y legged vertical striups
+
 
 fprintf('\n')
 disp('if Shear reinforcement not required it is given by 0 ')
@@ -459,6 +497,10 @@ fprintf('\n')
 
 
 %% check for development length
+
+%%%%%%%
+
+
 Tbd=interp1(Tbd_1(:,1),Tbd_1(:,2),Fck)
 switch (Tbd_switch)
   case 1
@@ -466,59 +508,49 @@ switch (Tbd_switch)
   case 2
         Ld=ceil((0.87*Fy*dia_1)/(4* 1.6*Tbd));
   endswitch
-Ld;
-Lo=(Bs/2)-(C_cc);
-fprintf('\n')
-disp('if Development length requirments are satisfied it is given by 1');
-disp('if Development length requirments are not satisfied it is given by 0');
+Ld
 
+if Fy<415
+   X1=3*dia_1;
+ elseif Fy>=415
+   X1=5*dia_1;
+ endif
 
-for i=1:r
-    M1=(0.87*Fy*AreaP_Tension(i))*(de_beam-((Fy*AreaP_Tension(i))/(Fck*B_beam)));
-    V1=Vu(i)*1000;
-    section=i;
-Ld_1=(1.3*M1/(V1))+Lo;
-if Ld_1>=Ld
-  disp_2=1;
-else 
-  disp_2=0;
+ if Hook_Allowance==180
+   ha=16*dia_1+4*dia_1;
+ elseif Hook_Allowance==90
+   ha=8*dia_1+4*dia_1;
+ else 
+  disp('change the degree of hook allowance')
+ endif
+Lo=(Bs/2)-X1-(C_cc)+ha
+
+disp(['As per code Bars must extend beyond the face of support by a distance not less than ' num2str((Ld/3))])
+Lif=Bs-C_cc;
+disp(['Embedment Length available from inner face of support ' num2str((Lif))])
+
+if Lif<=(Ld/3)
+  disp(['There is a need to increase the embedded length'])
+ Lifp=(Bs/2)+Lo;
+ disp(['Embedment Length provided from inner face of support ' num2str((Lifp))])
+else
+ disp(['Embedment Length provided from inner face of support ' num2str((Lif))])
 endif
-M(i,:)=[section];
-N(i,:)=[disp_2];
-endfor
-fprintf('\n')
-Section=[reshape(M,[],1)];
-Check_1=[reshape(N,[],1)];
-R4=[Section,Check_1];
-disp('Sec Ld_requirment')
-disp(num2str(R4))
 
-%% Check for deflection
+
 fprintf('\n')
-disp('if beam stisfies the limit state of servicibility it is given by 1')
-disp('if beam does not stisfies the limit state of servicibility it is given by 0')
-for i=1:r
-   PtP_Provided=(100*AreaP_Tension(i))/(B_beam*de_beam);
-   Fs=(0.58*Fy)*(AreaR_Tension(i)/AreaP_Tension(i));
-   Kt=interp2(Modification_Factor_1,Modification_Factor_1,Modification_Factor_1,Fs,PtP_Provided);
-   PtP_Compression=(AreaP_Compression(i)/(B_beam*de_beam))*100;
-   Kc=interp1(Modification_Factor_2(:,1),Modification_Factor_2(:,2),PtP_Compression);
-   Kf=1;
-   %% L/Dmax=LD
-   LD_max=20*Kt*Kc*Kf;
-   LD_Provided=(Span+Bs)/(de_beam);
-   if LD_max>=LD_Provided
-     Disp_2=0;
-   else
-     Disp_2=1;
-   endif
-    O(i,:)=[LD_max];   
-    P(i,:)=[LD_Provided]; 
-    Q(i,:)=[Disp_2];
-endfor
-LD_maximum=[reshape(O,[],1)];
-LD_provided=[reshape(P,[],1)];
-Check_2=[reshape(Q,[],1)];
-R5=[LD_maximum,LD_provided,Check_2];
-disp('Max_LD      Provided_LD        Check');
-disp(num2str(R5));
+
+AST_Provided=max(AreaP_Tension)
+
+  %%%  Mu1= TENSION FPORCE * LEVER ARM
+
+ M1=(0.87*Fy*AST_Provided)*(de_beam-((Fy*AST_Provided)/(Fck*B_beam)))
+  V1=max(Vu)
+  Ld_1=(1.3*M1/(V1*1000))+Lo
+  
+if Ld_1>=Ld
+ disp('Development length requirments are satisfied');
+ else
+ disp('Development length requirments are not satisfied');
+ %%% needs solution
+endif

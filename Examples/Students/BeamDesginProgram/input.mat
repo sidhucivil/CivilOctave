@@ -1,8 +1,8 @@
 
-%% span length  in mm
+%% effective span length  in mm
 #name: Span
 #type: scalar
-6000
+5300
 
 %% Width of support in mm
 #name: Bs
@@ -11,7 +11,7 @@
 
 #name: Fck
 #type: scalar
-25
+20
 
 #name: Fy
 #type: scalar
@@ -34,13 +34,13 @@
 %% To calculate D using program, give its value equal to 0
 #name: D
 #type: scalar
-450
+550
 
 %% Total width of beam
 %% To calculate b using program, give its value equal to 0
 #name: B
 #type: scalar
-250
+300
 
 %% Depth by Width ratio(D/B)
 %% should be between 1.5 and 2
@@ -52,13 +52,13 @@
 %% To calculate Cc using program, give its value equal to 0
 #name: Cc
 #type: scalar
-40
+30
 
 %% Effective depth of compression reinforcement
 %% To calculate de_c using program, give its value equal to 0
 #name: de_c
 #type: scalar
-40
+30
 
 %% Dia of bars in Tension
 #name: dia_1
@@ -75,15 +75,15 @@
 %% To calculate dia using program, give its value equal to 0
 #name: dia_3
 #type: scalar
-0
+8
 
 %% Dia of Anchorage reinforcement
 %% To calculate dia using program, give its value equal to 0
 #name: dia_4
 #type: scalar
-0
+12
 
-%% leggs of vertical stirrups (2, 4 or 6)
+%% leggs of vertical stirrups (2, 4 or 6) 
 # name: N_st
 # type: scalar
 2
@@ -94,6 +94,12 @@
 # name: Tbd_switch
 # type: scalar
 2
+
+%% Hook allowance for development length
+%% give value equal to 90 or 180 degree
+# name: Hook_Allowance
+# type: scalar
+90
 
 %% Size of aggregates
 #name: Sa
