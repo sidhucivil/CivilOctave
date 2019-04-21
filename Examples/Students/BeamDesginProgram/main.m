@@ -267,14 +267,7 @@ fprintf('\n')
 
 %% spacing of bars in mm
 for i=1:r
-  %% Tension bars
-  
-  
-  
-  
-  %%%%%% jkvheilfh
-  
-  
+ 
   
 if Nst_3(i)<=1
     SpT_provided_1=0;
@@ -526,3 +519,71 @@ disp('section development_length')
 R4=[Sec,Ld__1];
 disp(num2str(R4))
 
+
+
+
+
+
+
+
+%% Deflection check
+fprintf('\n')
+disp('if beam stisfies the limit state of servicibility it is given by 0')
+disp('if beam does not stisfies the limit state of servicibility it is given by 1')
+for i=1:r
+   PtP_Provided=(100*AreaP_Tension_2'(i))/(B_beam*de_beam);
+   Fs=(0.58*Fy)*(AreaR_Tension(i)/AreaP_Tension_2'(i));
+   Kt=(1/((0.225)+(0.00322*Fs)-(0.625*log10(1/PtP_Provided))));
+   PtP_Compression=(AreaP_Compression(i)/(B_beam*de_beam))*100;
+   Kc=interp1(Modification_Factor_2(:,1),Modification_Factor_2(:,2),PtP_Compression);
+   Kf=1;  
+   %% L/Dmax=LD
+   LD_max=20*Kt*Kc*Kf;
+   LD_Provided=(Span)/(de_beam);
+   if LD_max>=LD_Provided
+     Disp_2=0;
+   elseif LD_max<LD_Provided
+     Disp_2=1;
+   endif
+    O(i,:)=[LD_max];   
+    P(i,:)=[LD_Provided]; 
+    Q(i,:)=[Disp_2];
+endfor
+LD_maximum=[reshape(O,[],1)];
+LD_provided=[reshape(P,[],1)];
+Check_2=[reshape(Q,[],1)];
+R5=[LD_maximum,LD_provided,Check_2];
+disp('Max_LD      Provided_LD        Check');
+disp(num2str(R5));
+
+
+%% Crack width check
+fprintf('\n')
+disp('if beam stisfies the limit of Crack width requirement it is given by 0')
+disp('if beam does not stisfies the limit of Crack width requirement it is given by 1')
+for i=1:r
+  Section=i;
+Acr=sqrt(((Spacing_Tension_1(i)/2)*(Spacing_Tension_1(i)/2))+(Ce*Ce))-(dia_1/2);
+Sigma_CBC= interp1(Sigma_cbc(:,1),Sigma_cbc(:,2),Fck);
+Modular_ratio=280/(3*Sigma_CBC);
+PtP_Provided=(100*AreaP_Tension_2'(i))/(B_beam*de_beam);
+Rho=(PtP_Provided/100);
+k=((2*(Rho*Modular_ratio))+(Rho*Modular_ratio*Rho*Modular_ratio))-(Rho*Modular_ratio);
+x=(k*de_beam);
+I_cr=((B_beam*x*x*x)/(3))+(Modular_ratio*(AreaP_Tension_2'(i))*(de_beam-x)*(de_beam-x))+((((AreaP_Tension_2'(i))*((1.5*Modular_ratio)-1))*(x-Ce)*(x-Ce)));
+Fst=(((Modular_ratio*Mu(i)*1000000)*(de_beam-x))/(I_cr));
+Strain_m=((D_beam-x)/(Es*(de_beam-x)))*((Fst)-(((B_beam)*(D_beam-x))/(3*AreaP_Tension_2'(i))));
+W_cr=(3*Acr*Strain_m)/(1+(2*((Acr-C_cc)/(D_beam-x))));
+if W_cr<=0.3
+  Disp_3=0;
+else
+  Disp_3=1;
+endif
+    AA(i,:)=[Section];   
+    BB(i,:)=[Disp_3]; 
+endfor
+AA_1=[reshape(AA,[],1)];
+BB_1=[reshape(BB,[],1)];
+R7=[AA_1,BB_1];
+disp('Section      Check');
+disp(num2str(R7));
