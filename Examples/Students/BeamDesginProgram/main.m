@@ -106,15 +106,12 @@ Ce=(D_beam-de_beam)
 #xlabel('x, meter')
 #ylabel('FY, kN-m')
 
-#figure(2)
-#plot(StaadTable(:,2),StaadTable(:,5))
-#hold on
-#plot(StaadTable(:,2),StaadTable(:,6))
-#hold off
-#grid
-#title('Bending Moment ')
-#xlabel('x, meter')
-#ylabel('MZ, kN-m')
+figure(2)
+plot(StaadTable(:,2),StaadTable(:,5))
+grid
+title('Bending Moment ')
+xlabel('x, meter')
+ylabel('MZ, kN-m')
 
 Mu=StaadTable(:,5);
 Vu=StaadTable(:,3);
@@ -159,6 +156,12 @@ Ast_min=(0.85*B_beam*de_beam)/(Fy)
 Ast_max=(0.04*B_beam*D_beam)
 fprintf('\n')
 
+%% Anchorage reinforcement 
+if dia_4==0
+  dia_Anchorage=dia_4Data;
+else
+  dia_Anchorage=dia_4;
+endif
 
 for i=1:r
 %% Singly
@@ -177,22 +180,7 @@ for i=1:r
    Asc=(Mu_2*1000000)/((Fsc-0.446*Fck)*(de_beam-de_cr));
   endif
  
-%% Anchorage reinforcement 
-if dia_4==0
-  dia_Anchorage=dia_4Data;
-else
-  dia_Anchorage=dia_4;
-endif
 
-  if Asc==0
-  %%provide 2 anchorage bars on the top to hold the stirrups
-    As_Anchorage=2*(0.25*pi*dia_Anchorage*dia_Anchorage);
-  else
-    As_Anchorage=0;
-  endif
-  
-  
-  
 AstR_T=Ast_1+Ast_2;
 As_TC=Ast_1+Ast_2+Asc ;
 if As_TC>=Ast_min && As_TC<=Ast_max
@@ -213,7 +201,6 @@ AsCP_2=(Nsc(i,:)*0.25*pi*dia_2*dia_2);
 C(i,:)=[AsTP_1+AsCP_2];
 C_1(i,:)=[AsTP_1];
 C_2(i,:)=[AsCP_2];
-L(i,:)=[ As_Anchorage];
 
 endfor
 Steel=[reshape(A,[],5)];
@@ -224,25 +211,79 @@ N_Compression=[reshape(Nsc,[],1)];
 AreaR_Tension=[reshape(J,[],1)];
 AreaP_Tension=[reshape(C_1,[],1)];
 AreaP_Compression=[reshape(C_2,[],1)];
+
+
+
+
+
+%%% Distribution of Compression steel
+Max_Steel_Provided_Comp=max(AreaP_Compression)
+MSPC_11=0.75*Max_Steel_Provided_Comp;
+MSPC_12=0.6*Max_Steel_Provided_Comp;
+for i=1:r
+if Max_Steel_Provided_Comp==0
+   AreaP_Compression_2(i)=0;
+   Nsc_5(i)=0;
+  elseif MSPC_11<=AreaP_Compression(i) && AreaP_Compression(i)<=Max_Steel_Provided_Comp
+  AreaP_Compression_1(i)=Max_Steel_Provided_Comp;
+  Nsc_4(i,:)=[ceil((AreaP_Compression_1(i))/(0.25*pi*dia_2*dia_2))];
+   if Nsc_4(i)>0 && Nsc_4(i)<=2
+      Nsc_5(i)=2;
+   elseif Nsc_4(i)>2
+      Nsc_5(i)=Nsc_4(i);
+   endif
+  AreaP_Compression_2(i)=(0.25*pi*dia_2*dia_2)*Nsc_5(i);
+  
+ elseif MSPC_12<=AreaP_Compression(i) && AreaP_Compression(i)<MSPC_11
+  AreaP_Compression_1(i)=0.80*Max_Steel_Provided_Comp;
+  Nsc_4(i,:)=[ceil((AreaP_Compression_1(i))/(0.25*pi*dia_2*dia_2))];
+  if Nsc_4(i)>0 && Nsc_4(i)<=2
+      Nsc_5(i)=2;
+   elseif Nsc_4(i)>2
+      Nsc_5(i)=Nsc_4(i);
+   endif
+  AreaP_Compression_2(i)=(0.25*pi*dia_2*dia_2)*Nsc_5(i);
+  
+ elseif AreaP_Compression(i)<MSPC_12
+  AreaP_Compression_1(i)=0.6*Max_Steel_Provided_Comp;
+  Nsc_4(i,:)=[ceil((AreaP_Compression_1(i))/(0.25*pi*dia_2*dia_2))];
+  if Nsc_4(i)>0 && Nsc_4(i)<=2
+      Nsc_5(i)=2;
+   elseif Nsc_4(i)>2
+      Nsc_5(i)=Nsc_4(i);
+   endif
+  AreaP_Compression_2(i)=(0.25*pi*dia_2*dia_2)*Nsc_5(i);
+ endif 
+ 
+ if AreaP_Compression_2==0
+  %%provide 2 anchorage bars on the top to hold the stirrups
+    As_Anchorage=2*(0.25*pi*dia_Anchorage*dia_Anchorage);
+  else
+    As_Anchorage=0;
+ endif
+  L(i,:)=[ As_Anchorage];
+endfor
 AreaP_Anchorage=[reshape(L,[],1)];
 
+  
 
 
-%%%
-Max_Steel_Provided=max(TotalSteel_Provided)
-MSP_11=0.75*Max_Steel_Provided
-MSP_12=0.5*Max_Steel_Provided
+
+%%% Distribution of Tension steel
+Max_Steel_Provided_Tension=max(TotalSteel_Provided)
+MSP_11=0.75*Max_Steel_Provided_Tension;
+MSP_12=0.5*Max_Steel_Provided_Tension;
 for i=1:r
-if MSP_11<=AreaP_Tension(i) && AreaP_Tension(i)<=Max_Steel_Provided
-  AreaP_Tension_1(i)=Max_Steel_Provided;
+if MSP_11<=AreaP_Tension(i) && AreaP_Tension(i)<=Max_Steel_Provided_Tension
+  AreaP_Tension_1(i)=Max_Steel_Provided_Tension;
   Nst_3(i,:)=[ceil((AreaP_Tension_1(i))/(0.25*pi*dia_1*dia_1))];
   AreaP_Tension_2(i)=(0.25*pi*dia_1*dia_1)*Nst_3(i);
 elseif MSP_12<=AreaP_Tension(i) && AreaP_Tension(i)<MSP_11
-  AreaP_Tension_1(i)=0.80*Max_Steel_Provided;
+  AreaP_Tension_1(i)=0.80*Max_Steel_Provided_Tension;
   Nst_3(i,:)=[ceil((AreaP_Tension_1(i))/(0.25*pi*dia_1*dia_1))];
   AreaP_Tension_2(i)=(0.25*pi*dia_1*dia_1)*Nst_3(i);
 else
-  AreaP_Tension_1(i)=0.5*Max_Steel_Provided;
+  AreaP_Tension_1(i)=0.5*Max_Steel_Provided_Tension;
   Nst_3(i,:)=[ceil((AreaP_Tension_1(i))/(0.25*pi*dia_1*dia_1))];
   AreaP_Tension_2(i)=(0.25*pi*dia_1*dia_1)*Nst_3(i);
 endif
@@ -258,10 +299,12 @@ disp(num2str(S))
 fprintf('\n')
 dia_1
 dia_2
+dia_Anchorage
+
 
 fprintf('\n')
-R1=[TotalSteel_Required,Nst_3,N_Compression,AreaP_Tension_2'];
-disp('Steel_Required         NT             NC     Actual_Steel_Provided ')
+R1=[TotalSteel_Required,Nst_3,AreaP_Tension_2',Nsc_5',AreaP_Compression_2',AreaP_Anchorage];
+disp('Steel_Required         NT     Steel_P_T              NC     Steel_P_C        Anchorage steel')
 disp(num2str(R1)) 
 fprintf('\n')
 
@@ -305,10 +348,10 @@ else
  endif
 
 %% compression bars
-if N_Compression(i)<=1
+if Nsc_5(i)<=1
   SpC_provided_1=0;
 else
-  SpC_provided_1=((B_beam)-(2*Ce)-(((N_Compression(i)-1)*dia_1)))/((N_Compression(i))-1);
+  SpC_provided_1=((B_beam)-(2*Ce)-(((Nsc_5(i)-1)*dia_1)))/((Nsc_5(i))-1);
 endif
 
 Sp_min=max([dia_1 Sa+5]);
@@ -316,25 +359,25 @@ if SpC_provided_1>=Sp_min
    SpC_Provided_1=SpC_provided_1;
    SpC_Provided_2=0;
    Layers_C=1;
-   Nsc_1=N_Compression(i);
+   Nsc_1=Nsc_5(i);
    Nsc_2=0;
 elseif SpC_provided_1==0
    SpC_Provided_1=0;
    SpC_Provided_2=0;
    Layers_C=1;
-   Nsc_1=N_Compression(i);
+   Nsc_1=Nsc_5(i);
    Nsc_2=0;  
 else
   Layers_C=2;
-  Mod_C=mod(N_Compression(i),2);
+  Mod_C=mod(Nsc_5(i),2);
     if Mod_C==0
-      Nsc_1=(N_Compression(i)/2);
-      Nsc_2=(N_Compression(i)/2);
+      Nsc_1=(Nsc_5(i)/2);
+      Nsc_2=(Nsc_5(i)/2);
       SpC_Provided_1=((B_beam)-(2*Ce)-((((Nsc_1)-1)*dia_1)))/((Nsc_1)-1);
       SpC_Provided_2=((B_beam)-(2*Ce)-((((Nsc_2)-1)*dia_1)))/((Nsc_2)-1);
     else
-      Nsc_1=ceil((N_Compression(i)/2));
-      Nsc_2=N_Compression(i)-ceil((N_Compression(i)/2));
+      Nsc_1=ceil((Nsc_5(i)/2));
+      Nsc_2=Nsc_5(i)-ceil((Nsc_5(i)/2));
       SpC_Provided_1=((B_beam)-(2*Ce)-((((Nsc_1)-1)*dia_1)))/((Nsc_1)-1);
       SpC_Provided_2=((B_beam)-(2*Ce)-((((Nsc_2)-1)*dia_1)))/((Nsc_2)-1);
     endif 
@@ -377,11 +420,7 @@ fprintf('\n')
 
 
 
-dia_Anchorage
-R3=[AreaP_Anchorage];
-disp(' Anchorage steel')
-disp(num2str(R3))
-fprintf('\n')
+
 
 
 %% Tc_max(maximum shear stress in concrete) N/mm2  
@@ -462,8 +501,8 @@ if Tc>Tv
 elseif Tv>=Tc
   Disp_1=1; 
   Tus=(Tv-Tc);
-  Vus=(Tus*B_beam*de_beam)
-  Sv_1P=(0.87*Fy*Asv*de_beam)/(Vus)
+  Vus=(Tus*B_beam*de_beam);
+  Sv_1P=(0.87*Fy*Asv*de_beam)/(Vus);
   Sv_1=(0.87*Fy*Asv)/(0.4*B_beam);
   Sv_2=(0.75*de_beam);
   Sv_3=(300);
@@ -496,34 +535,95 @@ fprintf('\n')
 Tbd=interp1(Tbd_1(:,1),Tbd_1(:,2),Fck)
 switch (Tbd_switch)
   case 1
-        Ld=ceil((0.87*Fy*dia_1)/(4* Tbd));
+        Ld=((0.87*Fy*dia_1)/(4* Tbd));
   case 2
-        Ld=ceil((0.87*Fy*dia_1)/(4* 1.6*Tbd));
+        Ld=((0.87*Fy*dia_1)/(4* 1.6*Tbd));
   endswitch
 Ld;
 disp(['Development length at section having maximum moment= ' num2str(Ld)])
 
-for i=1:r  
- section=i;
+
+if Fy<415
+  X1=3*dia_1;
+elseif Fy>=415
+ X1=5*dia_1;
+endif
+
+if Hook_Allowance==180
+ ha=16*dia_1+4*dia_1;
+elseif Hook_Allowance==90
+ ha=8*dia_1+4*dia_1;
+else 
+disp('change the degree of hook allowance')
+endif
+Lo=(Bs/2)-X1-(C_cc)+ha;
+
+
+for i=1
  AST_Provided=AreaP_Tension_2'(i);
- M1=(0.87*Fy*AST_Provided)*(de_beam-((Fy*AST_Provided)/(Fck*B_beam)));
+ M1=(0.87*Fy*AST_Provided)*(de_beam-((Fy*AST_Provided)/(Fck*B_beam)))
  V1=Vu(i);
  Ld_1=(M1/(V1*1000));
  Z(i,:)=[Ld_1];
- ZZ(i,:)=[section];
 endfor
-Ld__1=[reshape(Z,[],1)];
-Sec=[reshape(ZZ,[],1)];
+Ld__1=[reshape(Z,[],1)]+Lo;
+disp(['Provided development_length= ' num2str(Ld__1)])
 
-disp('section development_length')
-R4=[Sec,Ld__1];
-disp(num2str(R4))
+if Ld__1>=Ld
+  disp('Beam satisfies the limit of Development length')
+else
+  disp('Beam does not satisfies the limit of Development length')
+endif
+fprintf('\n')
+disp(['As per code Bars must extend beyond the face of support by a distance not less than ' num2str((Ld/3))])
+Lif=Bs-C_cc;
+disp(['Embedment Length available from inner face of support ' num2str((Lif))])
+
+if Lif<=(Ld/3)
+  disp(['There is a need to increase the embedded length'])
+ Lifp=(Bs/2)+Lo;
+  disp(['Embedment Length provided from inner face of support ' num2str((Lifp))])
+else
+ disp(['Embedment Length provided from inner face of support ' num2str((Lif))])
+endif
 
 
 
 
+for i=1:r
+  Section_1=i;
+  
+  AST_Provided=AreaP_Tension_2'(i);
+  Xu=(0.87*Fy*AST_Provided)/(0.36*Fck*B_beam);
+  M2=(0.87*Fy*AST_Provided)*(de_beam-((Fy*AST_Provided)/(Fck*B_beam)));
+  Zz=de_beam-((0.36/0.87)*Xu);
+  sigma_stress=(M2)/(AST_Provided*Zz);
+Lddd=((sigma_stress*dia_1)/(4* 1.6*Tbd));
+CC(i,:)=[Section_1];
+CC_1(i,:)=[M2/1000000];  
+CC_2(i,:)= [sigma_stress];
+CC_3(i,:)=[Lddd];
+endfor
+CCC_1=[reshape(CC,[],1)];
+CCC_2=[reshape(CC_1,[],1)];
+CCC_3=[reshape(CC_2,[],1)];
+CCC_4=[reshape(CC_3,[],1)];
+CCCC=[CCC_1,CCC_2,CCC_3,CCC_4];
+disp(['Development length at section having maximum moment= ' num2str(Ld)])
+disp('Section    MOR        Reduced_stress         LD')
+disp(num2str(CCCC))
 
 
+figure(3)
+plot(StaadTable(:,2),StaadTable(:,5))
+hold on
+plot(StaadTable(:,2),StaadTable(:,6))
+plot(StaadTable(:,2),CCC_2)
+hold off
+grid
+title('Bending Moment ')
+xlabel('x, meter')
+ylabel('MZ, kN-m')
 
 
 %% Deflection check
@@ -573,7 +673,7 @@ x=(k*de_beam);
 I_cr=((B_beam*x*x*x)/(3))+(Modular_ratio*(AreaP_Tension_2'(i))*(de_beam-x)*(de_beam-x))+((((AreaP_Tension_2'(i))*((1.5*Modular_ratio)-1))*(x-Ce)*(x-Ce)));
 Fst=(((Modular_ratio*Mu(i)*1000000)*(de_beam-x))/(I_cr));
 Strain_m=((D_beam-x)/(Es*(de_beam-x)))*((Fst)-(((B_beam)*(D_beam-x))/(3*AreaP_Tension_2'(i))));
-W_cr=(3*Acr*Strain_m)/(1+(2*((Acr-C_cc)/(D_beam-x))));
+W_cr=abs((3*Acr*Strain_m)/(1+(2*((Acr-C_cc)/(D_beam-x)))));
 if W_cr<=0.3
   Disp_3=0;
 else
@@ -587,3 +687,5 @@ BB_1=[reshape(BB,[],1)];
 R7=[AA_1,BB_1];
 disp('Section      Check');
 disp(num2str(R7));
+
+save a.text
